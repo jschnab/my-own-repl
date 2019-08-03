@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -std=c99
 LDFLAGS = -ledit
-repl: main.o
+repl: main.o mpc.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c

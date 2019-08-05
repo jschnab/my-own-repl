@@ -27,25 +27,93 @@ void add_history(char* unused) {}
 #include <editline/history.h>
 #endif
 
-long eval_op(long x, char* op, long y) {
-    if (strcmp(op, "+") == 0) { return x + y; }
-    if (strcmp(op, "_") == 0) { return x - y; }
-    if (strcmp(op, "*") == 0) { return x * y; }
-    if (strcmp(op, "/") == 0) { return x / y; }
-    return 0;
+// declare a new 'lval' struct
+typedef struct {
+    int type;
+    long num;
+    int err;
+} lval;
+
+// create enumeration of possible lval types
+enum {LVAL_NUM, LVAL_ERR};
+
+// create enumeration of possible error types
+enum {LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM};
+
+// function to print an 'lval' type
+void lval_print(lval v) {
+    switch (v.type) {
+        // if type is a number print it
+        case LVAL_NUM: 
+            printf("%li\n", v.num); break;
+
+        case LVAL_ERR:
+            if (v.err == LERR_DIV_ZERO)
+                printf("Error: Division by zero.\n");
+
+            else if (v.err == LERR_BAD_OP)
+                printf("Error: Invalid operator.\n");
+            
+            else if (v.err == LERR_BAD_NUM)
+                printf("Error: Invalid number.\n");
+
+            break;
+
+    }
 }
 
-long eval(mpc_ast_t* t) {
+// function to create a new number type lval
+lval lval_num(long x) {
+    lval v;
+    v.type = LVAL_NUM;
+    v.num = x;
+    return v;
+}
+
+// function to create a new error type lval
+lval lval_err(int x) {
+    lval v;
+    v.type = LVAL_ERR;
+    v.err = x;
+    return v;
+}
+
+// function to evaluate operators and numbers
+lval eval_op(lval x, char* op, lval y) {
+
+    // if x or y is an error return it
+    if (x.type == LVAL_ERR) { return x; }
+    if (y.type == LVAL_ERR) { return y; }
+
+    if (strcmp(op, "+") == 0) { return lval_num(x.num + y.num); }
+    if (strcmp(op, "_") == 0) { return lval_num(x.num - y.num); }
+    if (strcmp(op, "*") == 0) { return lval_num(x.num * y.num); }
+    if (strcmp(op, "/") == 0) {
+        // if divisor is 0 return error
+        return y.num == 0 
+            ? lval_err(LERR_DIV_ZERO)
+            : lval_num(x.num / y.num);
+    }
+
+    return lval_err(LERR_BAD_OP);
+}
+
+// function to evaluate the tree
+lval eval(mpc_ast_t* t) {
+
     // if tagged as number return directly
     if (strstr(t->tag, "number")) {
-        return atoi(t->contents);
+        // check if there is some error in conversion
+        errno = 0;
+        long x = strtol(t->contents, NULL, 10);
+        return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
     }
 
     // operator is always second child
     char* op = t->children[1]->contents;
 
     // we store the third child in variable x
-    long x = eval(t->children[2]);
+    lval x = eval(t->children[2]);
 
     // iterate the remaining children and combine
     int i = 3;
@@ -93,8 +161,8 @@ int main(int argc, char* argv[]) {
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
             // on success print the evaluated output
-            long result = eval(r.output);
-            printf("%li\n", result);
+            lval result = eval(r.output);
+            lval_print(result);
             mpc_ast_delete(r.output);
         }
         else {

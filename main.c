@@ -81,13 +81,14 @@ void lval_del(lval* v) {
 
         case LVAL_SYM:
             free(v->sym);
+            break;
 
         case LVAL_SEXPR:
             for (int i = 0; i < v->count; i++) {
                 lval_del(v->cell[i]);
             }
             free(v->cell);
-        break;
+            break;
     }
 
     free(v);
@@ -147,7 +148,7 @@ void lval_print(lval* v) {
             break;
 
         case LVAL_ERR:
-            printf("Error %s", v->err);
+            printf("Error: %s", v->err);
             break;
 
         case LVAL_SYM:
@@ -221,7 +222,7 @@ lval* builtin_op(lval* a, char* op) {
         if (strcmp(op, "/") == 0) {
             if (y->num == 0) {
                 lval_del(x); lval_del(y);
-                x = lval_err("Division by zero"); break;
+                x = lval_err("division by zero"); break;
             }
             x->num /= y->num;
         }

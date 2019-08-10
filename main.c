@@ -94,12 +94,14 @@ void lval_del(lval* v) {
     free(v);
 }
 
+// function to convert an AST node to a number lval
 lval* lval_read_num(mpc_ast_t* t) {
     errno = 0;
     long x = strtol(t->contents, NULL, 10);
         return errno != ERANGE ? lval_num(x) : lval_err("invalid number");
 }
 
+// function to add an AST element to the list of element
 lval* lval_add(lval* v, lval* x) {
     v->count++;
     v->cell = realloc(v->cell, sizeof(lval*) * v->count);
@@ -107,6 +109,7 @@ lval* lval_add(lval* v, lval* x) {
     return v;
 }
 
+// this function converts an AST node and its children to an lval
 lval* lval_read(mpc_ast_t* t) {
     // if Symbol or Number return conversion to this type
     if (strstr(t->tag, "number")) { return lval_read_num(t); }
@@ -141,6 +144,7 @@ void lval_expr_print(lval* v, char open, char close) {
     putchar(close);
 }
 
+// function which prints lval
 void lval_print(lval* v) {
     switch (v->type) {
         case LVAL_NUM:
@@ -161,6 +165,7 @@ void lval_print(lval* v) {
     }
 }
 
+// function which prints a line of lval
 void lval_println(lval* v) { lval_print(v); putchar('\n'); }
 
 // function to evaluate lval
@@ -188,12 +193,14 @@ lval* lval_pop(lval* v, int i) {
     return x;
 }
 
+// function that pops and deletes
 lval* lval_take(lval* v, int i) {
     lval* x = lval_pop(v, i);
     lval_del(v);
     return x;
 }
 
+// function which performs calculations on lval
 lval* builtin_op(lval* a, char* op) {
     // ensure all elements a numbers
     for (int i = 0; i < a->count; i++) {
@@ -216,6 +223,7 @@ lval* builtin_op(lval* a, char* op) {
         // pop next element
         lval* y = lval_pop(a, 0);
 
+        // do mathematical operation
         if (strcmp(op, "+") == 0) {x->num += y->num;}
         if (strcmp(op, "-") == 0) {x->num -= y->num;}
         if (strcmp(op, "*") == 0) {x->num *= y->num;}
@@ -231,10 +239,11 @@ lval* builtin_op(lval* a, char* op) {
     }
 
     lval_del(a);
+
     return x;
 }
 
-// function to evaluate S-expressions
+// function to evaluate S-expressions (error checking,
 lval* lval_eval_sexpr(lval* v) {
     // evaluate children
     for (int i = 0; i < v->count; i++) {
@@ -250,18 +259,20 @@ lval* lval_eval_sexpr(lval* v) {
     if (v->count == 0) {return v;}
 
     // single expression
-    if (v->count == 1) {return lval_take(v, 0 );}
+    if (v->count == 1) {return lval_take(v, 0);}
 
     // ensure first element is symbol
     lval* f = lval_pop(v, 0);
     if (f->type != LVAL_SYM) {
-        lval_del(f); lval_del(v);
+        lval_del(f);
+        lval_del(v);
         return lval_err("S-expression does not start with symbol.");
     }
 
     // call builtin with operator
     lval* result = builtin_op(v, f->sym);
     lval_del(f);
+
     return result;
 }
 

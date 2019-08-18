@@ -32,45 +32,45 @@
 #define LASSERT(args, cond, err) \
         if (!(cond)) { lval_del(args); return lval_err(err); }
 
-    // create enumeration of possible lval types
-    enum {LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR, LVAL_ERR};
+// create enumeration of possible lval types
+enum {LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR, LVAL_ERR, LVAL_FUN};
 
-    // create enumeration of possible error types
-    enum {LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM};
+// create enumeration of possible error types
+enum {LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM};
 
-    // function to create a new number type lval
-    lval* lval_num(long x) {
-        lval* v = malloc(sizeof(lval));
-        v->type = LVAL_NUM;
-        v->num = x;
-        return v;
-    }
-
-    // construct a pointer to a new error type lval
-    lval* lval_err(char* e) {
-        lval* v = malloc(sizeof(lval));
-        v->type = LVAL_ERR;
-        v->err = malloc(strlen(e) + 1);
-        strcpy(v->err, e);
-        return v;
-    }
-
-    // construct a pointer to new Symbol lval
-    lval* lval_sym(char* s) {
-        lval* v = malloc(sizeof(lval));
-        v->type = LVAL_SYM;
-        v->sym = malloc(strlen(s) + 1);
-        strcpy(v->sym, s);
-        return v;
-    }
-
-    // construct a pointer to a new empty Sexpr lval
-    lval* lval_sexpr(void) {
-        lval* v = malloc(sizeof(lval));
-        v->type = LVAL_SEXPR;
-        v->count = 0;
-        v->cell = NULL;
+// function to create a new number type lval
+lval* lval_num(long x) {
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_NUM;
+    v->num = x;
     return v;
+}
+
+// construct a pointer to a new error type lval
+lval* lval_err(char* e) {
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_ERR;
+    v->err = malloc(strlen(e) + 1);
+    strcpy(v->err, e);
+    return v;
+}
+
+// construct a pointer to new Symbol lval
+lval* lval_sym(char* s) {
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_SYM;
+    v->sym = malloc(strlen(s) + 1);
+    strcpy(v->sym, s);
+    return v;
+}
+
+// construct a pointer to a new empty Sexpr lval
+lval* lval_sexpr(void) {
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_SEXPR;
+    v->count = 0;
+    v->cell = NULL;
+return v;
 }
 
 lval* lval_qexpr(void) {
@@ -78,6 +78,13 @@ lval* lval_qexpr(void) {
     v->type = LVAL_QEXPR;
     v->count = 0;
     v->cell = NULL;
+    return v;
+}
+
+lval* lval_fun(lbuiltin func) {
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_FUN;
+    v->fun = func;
     return v;
 }
 
@@ -97,10 +104,12 @@ void lval_del(lval* v) {
 
         case LVAL_QEXPR:
         case LVAL_SEXPR:
-            for (int i = 0; i < v->count; i++) {
+            for (int i = 0; i < v->count; i++)
                 lval_del(v->cell[i]);
-            }
             free(v->cell);
+            break;
+
+        case LVAL_FUN:
             break;
     }
 
@@ -182,6 +191,10 @@ void lval_print(lval* v) {
         case LVAL_QEXPR:
             lval_expr_print(v, '{', '}');
             break;
+
+        case LVAL_FUN:
+            printf("<function>");
+            break;
     }
 }
 
@@ -210,6 +223,45 @@ lval* lval_pop(lval* v, int i) {
     // reallocate memory used
     v->cell = realloc(v->cell, sizeof(lval*) * v->count);
     
+    return x;
+}
+
+lval* lval_copy(lval* v) {
+    lval* x = malloc(sizeof(lval));
+    x->type = v->type;
+
+    switch (v->type) {
+
+        // copy functions and number directly
+        case LVAL_FUN:
+            x->fun = v->fun;
+            break;
+
+        case LVAL_NUM:
+            x->num = v->num;
+            break;
+
+        // copy string using malloc and strcpy
+        case LVAL_ERR:
+            x->err = malloc(strlen(v->err) + 1);
+            strcpy(x->err, v->err);
+            break;
+
+        case LVAL_SYM:
+            x->sym = malloc(strlen(v->sym) + 1);
+            strcpy(x->sym, v->sym);
+            break;
+
+        // copy lists by copying each sub-expression
+        case LVAL_SEXPR:
+        case LVAL_QEXPR:
+            x->count = v->count;
+            x->cell = malloc(sizeof(lval*) * x->count);
+            for (int i = 0; i < x->count; i++)
+                x->cell[i] = lval_copy(v->cell[i]);
+            break;
+    }
+
     return x;
 }
 
@@ -451,8 +503,7 @@ int main(int argc, char* argv[]) {
             MPCA_LANG_DEFAULT,
             "\
             number   : /-?[0-9]+/ ;\
-            symbol   : '+' | '-' | '*' | '/' | \"len\" |\
-                       \"list\" | \"head\" | \"tail\"|  \"join\" | \"eval\" ;\
+            symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;\
             sexpr    : '(' <expr>* ')' ;\
     	    qexpr    : '{' <expr>* '}' ;\
             expr     : <number> |  <symbol> | <sexpr> | <qexpr> ;\
@@ -478,6 +529,10 @@ int main(int argc, char* argv[]) {
         // parse user input
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
+            // print the tree
+            printf("Syntax tree:\n");
+            mpc_ast_print(r.output);
+            printf("\n");
             // on success print the evaluated output
             lval* x = lval_eval(lval_read(r.output));
             lval_println(x);

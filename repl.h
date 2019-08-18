@@ -2,6 +2,16 @@
 
 #include "mpc.h"
 
+struct lval;
+
+struct lenv;
+
+typedef struct lval lval;
+
+typedef struct lenv lenv;
+
+typedef lval*(*lbuiltin)(lenv*, lval*);
+
 typedef struct lval {
     int type;
     long num;
@@ -9,7 +19,8 @@ typedef struct lval {
     char* err;
     char* sym;
     int count;
-    struct lval** cell;
+    lbuiltin fun;
+    lval** cell;
 } lval;
 
 lval* lval_num(long x);

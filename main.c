@@ -455,6 +455,8 @@ lval* builtin_def(lenv* e, lval* a) {
         a,
         syms->count == a->count - 1,
         "function 'def' cannot define incorrect number of values to symbols"
+        " (got %i, expected: %i)",
+        syms->count, a->count - 1
     );
 
     // assign copies of values to symbols
@@ -501,13 +503,17 @@ lval* builtin_len(lenv* e, lval* a) {
     LASSERT(
         a,
         a->count == 1,
-        "function 'len' was passed too many arguments"
+        "function 'len' was passed too many arguments "
+        "(got %i, expected: %i)",
+        a->count, 1
     );
 
     LASSERT(
         a,
         a->cell[0]->type == LVAL_QEXPR,
-        "function 'len' was passed incorrect type"
+        "function 'len' was passed incorrect type "
+        "(got '%s', expected '%s')",
+        ltype_name(a->cell[0]->type), ltype_name(LVAL_QEXPR)
     );
 
     return lval_num((long) a->cell[0]->count);
@@ -525,7 +531,10 @@ lval* builtin_head(lenv* e, lval* a) {
     LASSERT(
         a,
         a->cell[0]->type == LVAL_QEXPR,
-        "function 'head' was passed incorrect type"
+        "function 'head' was passed incorrect type "
+        "(got '%s', expected '%s')",
+        ltype_name(a->cell[0]->type), ltype_name(LVAL_QEXPR)
+
     );
 
     LASSERT(
@@ -549,13 +558,18 @@ lval* builtin_tail(lenv* e, lval* a) {
     LASSERT(
         a,
         a->count == 1,
-        "function 'tail' was passed too many arguments"
+        "function 'head' was passed too many arguments "
+        "(got %i, expect %i", a->count, 1
+
     );
 
     LASSERT(
         a,
         a->cell[0]->type == LVAL_QEXPR,
-        "function 'tail' was passed incorrect type"
+        "function 'tail' was passed incorrect type "
+        "(got '%s', expected '%s')",
+        ltype_name(a->cell[0]->type), ltype_name(LVAL_QEXPR)
+
     );
 
     LASSERT(
@@ -579,13 +593,17 @@ lval* builtin_eval(lenv* e, lval* a) {
     LASSERT(
         a,
         a->count == 1,
-        "function 'eval' was passed too many arguments"
+        "function 'eval' was passed too many arguments "
+        "(got %i, expect %i", a->count, 1
     );
 
     LASSERT(
         a,
         a->cell[0]->type == LVAL_QEXPR,
-        "function 'eval' was passed incorrect type"
+        "function 'eval' was passed incorrect type "
+        "(got '%s', expected '%s')",
+        ltype_name(a->cell[0]->type), ltype_name(LVAL_QEXPR)
+
     );
 
     lval* x = lval_take(a, 0);
@@ -599,7 +617,10 @@ lval* builtin_join(lenv* e, lval* a) {
         LASSERT(
             a,
             a->cell[i]->type == LVAL_QEXPR,
-            "function 'join' was passed incorrect type"
+            "function 'join' was passed incorrect type "
+            "(got '%s', expected '%s')",
+            ltype_name(a->cell[0]->type), ltype_name(LVAL_QEXPR)
+
         );
     }
 

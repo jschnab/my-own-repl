@@ -2,9 +2,9 @@
 
 #include "mpc.h"
 
-struct lval;
+//struct lval;
 
-struct lenv;
+//struct lenv;
 
 typedef struct lval lval;
 

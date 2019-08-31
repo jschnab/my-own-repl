@@ -2,15 +2,12 @@
 
 #include "mpc.h"
 
-//struct lval;
-
-//struct lenv;
-
 typedef struct lval lval;
 
 typedef struct lenv lenv;
 
 struct lenv {
+    lenv* par;
     int count;
     char** syms;
     lval** vals;
@@ -24,22 +21,33 @@ lval* lenv_get(lenv* e, lval* k);
 
 void lenv_put(lenv* e, lval* k, lval* v);
 
+void lenv_def(lenv* e, lval* k, lval* v);
+
+lenv* lenv_copy(lenv* e);
+
 typedef lval*(*lbuiltin)(lenv*, lval*);
 
 typedef struct lval {
     int type;
+    // basic
     long num;
-    // error and symbol types have string data
     char* err;
     char* sym;
+    // functions
+    lbuiltin builtin;
+    lenv* env;
+    lval* formals;
+    lval* body;
+    // expression
     int count;
-    lbuiltin fun;
     lval** cell;
 } lval;
 
 lval* lval_copy(lval* v);
 
 lval* lval_fun(lbuiltin func);
+
+lval* lval_lambda(lval* formals, lval* body);
 
 lenv* lenv_new(void);
 
@@ -105,11 +113,17 @@ lval* builtin_join(lenv* e, lval* a);
 
 lval* builtin_def(lenv* e, lval* a);
 
+lval* builtin_put(lenv* e, lval* a);
+
+lval* builtin_var(lenv* e, lval* a, char* func);
+
 lval* lval_join(lval* x, lval* y);
 
 lval* builtin(lval* a, char* func);
 
 lval* builtin_op(lenv* e, lval* a, char* op);
+
+lval* lval_call(lenv*e, lval* f, lval* a);
 
 lval* lval_eval_sexpr(lenv* e, lval* v);
 

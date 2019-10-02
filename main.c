@@ -484,7 +484,7 @@ int lval_eq(lval* x, lval* y) {
             if (x->count != y->count) { return 0; }
             for (int i = 0; i < x->count; i++) {
                 // if any element not equal then whole list not equal
-                if (!lval_eq(cell[i], y->cell[i])) { return 0; }
+                if (!lval_eq(x->cell[i], y->cell[i])) { return 0; }
             }
             return 1;
         break;
@@ -610,6 +610,32 @@ lval* builtin_ne(lenv* e, lval* a) {
 }
 
 
+// function to perform conditionals
+lval* builtin_if(lenv* e, lval* a) {
+    LASSERT_NUM("if", a, 3);
+    LASSERT_TYPE("if", a, 0, LVAL_NUM);
+    LASSERT_TYPE("if", a, 1, LVAL_QEXPR);
+    LASSERT_TYPE("if", a, 2, LVAL_QEXPR);
+
+    // mark both expression as evaluable
+    lval* x;
+    a->cell[1]->type = LVAL_SEXPR;
+    a->cell[2]->type = LVAL_SEXPR;
+
+    if (a->cell[0]->num) {
+        // if condition is true evaluate first expression
+        x = lval_eval(e, lval_pop(a, 1));
+    } else {
+        // otherwise evaluate second expression
+        x = lval_eval(e, lval_pop(a, 2));
+    }
+
+    // delete argument list and return
+    lval_del(a);
+    return x;
+}
+
+
 // function to define your own variables
 lval* builtin_var(lenv* e, lval* a, char* func) {
     LASSERT_TYPE(func, a, 0, LVAL_QEXPR);
@@ -703,6 +729,15 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "-", builtin_sub);
     lenv_add_builtin(e, "*", builtin_mul);
     lenv_add_builtin(e, "/", builtin_div);
+
+    // comparison functions
+    lenv_add_builtin(e, "if", builtin_if);
+    lenv_add_builtin(e, "==", builtin_eq);
+    lenv_add_builtin(e, "!=", builtin_ne);
+    lenv_add_builtin(e, ">", builtin_gt);
+    lenv_add_builtin(e, "<", builtin_lt);
+    lenv_add_builtin(e, ">=", builtin_ge);
+    lenv_add_builtin(e, "<=", builtin_le);
 }
 
 
@@ -861,7 +896,7 @@ lval* builtin_ord(lenv* e, lval* a, char* op) {
         r = (a->cell[0]->num >= a->cell[1]->num);
     }
     if (strcmp(op, "<=") == 0) {
-        r = (a->cell[1]->num <= a->cell[1]->num);
+        r = (a->cell[0]->num <= a->cell[1]->num);
     }
     lval_del(a);
     return lval_num(r);
@@ -1041,7 +1076,7 @@ int main(int argc, char* argv[]) {
             Lispy
     );
     
-    puts("Welcome to REPL version 0.0.11");
+    puts("Welcome to REPL version 0.0.13");
     puts("Press Ctrl+c to exit\n");
 
     // create an environment and register builtin functions

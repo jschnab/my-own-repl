@@ -33,6 +33,7 @@ typedef struct lval {
     long num;
     char* err;
     char* sym;
+    char* str;
     // functions
     lbuiltin builtin;
     lenv* env;
@@ -65,6 +66,8 @@ char* ltype_name(int t);
 
 lval* lval_sym(char* s);
 
+lval* lval_str(char* s);
+
 lval* lval_sexpr(void);
 
 lval* lval_qexpr(void);
@@ -72,6 +75,8 @@ lval* lval_qexpr(void);
 void lval_del(lval* v);
 
 lval* lval_read_num(mpc_ast_t* t);
+
+lval* lval_read_str(mpc_ast_t* t);
 
 lval* lval_add(lval* v, lval* x);
 
@@ -81,7 +86,7 @@ void lval_print(lval* v);
 
 void lval_expr_print(lval* v, char open, char close);
 
-void lval_print(lval* v);
+void lval_print_str(lval* v);
 
 void lval_println(lval* v);
 
@@ -130,6 +135,12 @@ lval* builtin_ord(lenv* e, lval* a, char* op);
 lval* builtin_cmp(lenv* e, lval* a, char* op);
 
 lval* builtin_if(lenv* e, lval* a);
+
+lval* builtin_load(lenv* e, lval* a);
+
+lval* builtin_print(lenv* e, lval* a);
+
+lval* builtin_error(lenv* e, lval* a);
 
 int lval_eq(lval* x, lval* y);
 
